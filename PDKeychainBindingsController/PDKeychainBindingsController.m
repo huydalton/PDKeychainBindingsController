@@ -39,7 +39,7 @@ static PDKeychainBindingsController *sharedInstance = nil;
                            nil];
 	
     CFDataRef stringData = NULL;
-    status = SecItemCopyMatching((CFDictionaryRef)query, (CFTypeRef*)&stringData);
+    status = SecItemCopyMatching((__bridge_retained CFDictionaryRef)query, (CFTypeRef*)&stringData);
 #else //OSX
     //SecKeychainItemRef item = NULL;
     UInt32 stringLength;
@@ -51,10 +51,9 @@ static PDKeychainBindingsController *sharedInstance = nil;
 	if(status) return nil;
 	
 #if TARGET_OS_IPHONE
-    NSString *string = [[[NSString alloc] initWithData:(id)stringData encoding:NSUTF8StringEncoding] autorelease];
-    CFRelease(stringData);
+    NSString *string = [[NSString alloc] initWithData:(__bridge_transfer id)stringData encoding:NSUTF8StringEncoding];
 #else //OSX
-    NSString *string = [[[NSString alloc] initWithBytes:stringBuffer length:stringLength encoding:NSUTF8StringEncoding] autorelease];
+    NSString *string = [[NSString alloc] initWithBytes:stringBuffer length:stringLength encoding:NSUTF8StringEncoding];
     SecKeychainItemFreeAttributesAndData(NULL, stringBuffer);
 #endif
 	return string;	
@@ -65,10 +64,10 @@ static PDKeychainBindingsController *sharedInstance = nil;
 	if (!string)  {
 		//Need to delete the Key 
 #if TARGET_OS_IPHONE
-        NSDictionary *spec = [NSDictionary dictionaryWithObjectsAndKeys:(id)kSecClassGenericPassword, kSecClass,
+        NSDictionary *spec = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge_transfer id)kSecClassGenericPassword, kSecClass,
                               key, kSecAttrAccount,[self serviceName], kSecAttrService, nil];
         
-        return !SecItemDelete((CFDictionaryRef)spec);
+        return !SecItemDelete((__bridge_retained CFDictionaryRef)spec);
 #else //OSX
         SecKeychainItemRef item = NULL;
         OSStatus status = SecKeychainFindGenericPassword(NULL, (uint) [[self serviceName] lengthOfBytesUsingEncoding:NSUTF8StringEncoding], [[self serviceName] UTF8String],
@@ -81,18 +80,18 @@ static PDKeychainBindingsController *sharedInstance = nil;
     } else {
 #if TARGET_OS_IPHONE
         NSData *stringData = [string dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *spec = [NSDictionary dictionaryWithObjectsAndKeys:(id)kSecClassGenericPassword, kSecClass,
+        NSDictionary *spec = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge_transfer id)kSecClassGenericPassword, kSecClass,
                               key, kSecAttrAccount,[self serviceName], kSecAttrService, nil];
         
         if(!string) {
-            return !SecItemDelete((CFDictionaryRef)spec);
+            return !SecItemDelete((__bridge_retained CFDictionaryRef)spec);
         }else if([self stringForKey:key]) {
-            NSDictionary *update = [NSDictionary dictionaryWithObject:stringData forKey:(id)kSecValueData];
-            return !SecItemUpdate((CFDictionaryRef)spec, (CFDictionaryRef)update);
+            NSDictionary *update = [NSDictionary dictionaryWithObject:stringData forKey:(__bridge_transfer id)kSecValueData];
+            return !SecItemUpdate((__bridge_retained CFDictionaryRef)spec, (__bridge_retained CFDictionaryRef)update);
         }else{
             NSMutableDictionary *data = [NSMutableDictionary dictionaryWithDictionary:spec];
-            [data setObject:stringData forKey:(id)kSecValueData];
-            return !SecItemAdd((CFDictionaryRef)data, NULL);
+            [data setObject:stringData forKey:(__bridge_transfer id)kSecValueData];
+            return !SecItemAdd((__bridge_retained CFDictionaryRef)data, NULL);
         }
 #else //OSX
         SecKeychainItemRef item = NULL;
@@ -150,30 +149,10 @@ static PDKeychainBindingsController *sharedInstance = nil;
     return self;
 }
 
-- (id)retain
-{
-    return self;
-}
-
-- (oneway void)release
-{
-    //do nothing
-}
-
-- (id)autorelease
-{
-    return self;
-}
-
-- (NSUInteger)retainCount
-{
-    return NSUIntegerMax;  // This is sooo not zero
-}
-
 - (id)init
 {
 	@synchronized(self) {
-		[super init];	
+		self = [super init];	
 		return self;
 	}
 }
